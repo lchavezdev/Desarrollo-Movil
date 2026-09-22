@@ -1,54 +1,68 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Image, Button, TouchableOpacity, TextInput, ScrollView, FlatList } from 'react-native';
+import { StyleSheet, View, Text, Image, TouchableOpacity, TextInput, ScrollView, FlatList, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useProductosContext } from "../context/ProductosContext"; 
+import { useProductosContext } from "../context/ProductosContext";
 
 export default function Home({ navigation }: any) {
-const { listaProductos, agregarProducto, eliminarProducto } = useProductosContext();
-
-    // Estados del formulario idénticos a tus especificaciones
+    const { listaProductos, agregarProducto } = useProductosContext();
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [precio, setPrecio] = useState('');
     const [estado, setEstado] = useState<'Disponible' | 'No disponible'>('Disponible');
-    const [categoria, setCategoria] = useState('');
+    
+    const [categoria, setCategoria] = useState<'Electrónica' | 'Ropa' | 'Hogar'>('Electrónica');
+    const [precio, setPrecio] = useState('');
     const [selectImage, setSelectImage] = useState<string | null>(null);
 
-    // Método para abrir la galería basado exactamente en tu código
-    const pickImage = async () => {
+    const cambiarCategoria = () => {
+        if (categoria === 'Electrónica') {
+            setCategoria('Ropa');
+        } else if (categoria === 'Ropa') {
+            setCategoria('Hogar');
+        } else {
+            setCategoria('Electrónica');
+        }
+    };
+
+    const tomarOFotoGaleria = () => {
+        Alert.alert(
+            "Cargar Fotografía",
+            "Selecciona el origen de la imagen",
+            [
+                { text: "Cámara", onPress: abrirCamara },
+                { text: "Galería", onPress: abrirGaleria },
+                { text: "Cancelar", style: "cancel" }
+            ]
+        );
+    };
+
+    const abrirGaleria = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             allowsEditing: true,
-            aspect:[1, 1],
+            aspect:[1,1],
             quality: 1,
         });
-
-        if (!result.canceled) {
-            console.log(result.assets[0].uri);
+        if (!result.canceled && result.assets && result.assets.length > 0) {
             setSelectImage(result.assets[0].uri);
         }
     };
 
-    // Método para tomar foto con la cámara basado exactamente en tu código
-    const tomarFoto = async () => {
+    const abrirCamara = async () => {
         let result = await ImagePicker.launchCameraAsync({
             allowsEditing: true,
-            aspect:[1, 1],
+            aspect:[1,1],
             quality: 1,
         });
-
-        if (!result.canceled) {
-            console.log(result.assets[0].uri);
+        if (!result.canceled && result.assets && result.assets.length > 0) {
             setSelectImage(result.assets[0].uri);
         }
     };
 
-    const manejarEnviar = () => {
+    const manejarGuardar = () => {
         if (!nombre || !precio || !categoria) {
             alert('Por favor complete los campos obligatorios');
             return;
         }
 
-        // Ejecuta la función de tu Provider original
         agregarProducto({
             nombre,
             descripcion,
@@ -58,144 +72,172 @@ const { listaProductos, agregarProducto, eliminarProducto } = useProductosContex
             urlFotografia: selectImage || 'https://placeholder.com'
         });
 
-        // Limpieza de campos al finalizar el envío
         setNombre('');
         setDescripcion('');
         setPrecio('');
+        setCategoria('Electrónica');
         setEstado('Disponible');
-        setCategoria('');
         setSelectImage(null);
     };
 
     return (
         <View style={styles.container}>
-            <ScrollView style={styles.formContainer} keyboardShouldPersistTaps="handled">
-                <Text style={styles.title}>Administración de Productos</Text>
-
-                <Text style={styles.label}>Nombre (*)</Text>
-                <TextInput 
-                    style={styles.input} 
-                    placeholder="Ingrese el nombre" 
+            <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
+                <TextInput
+                    style={styles.inputStyle}
+                    placeholder="Nombre"
+                    placeholderTextColor="#555"
                     value={nombre}
                     onChangeText={setNombre}
                 />
-
-                <Text style={styles.label}>Descripción</Text>
-                <TextInput 
-                    style={styles.input} 
-                    placeholder="Ingrese la descripción" 
+                <TextInput
+                    style={styles.inputStyle}
+                    placeholder="Descripcion"
+                    placeholderTextColor="#555"
                     value={descripcion}
                     onChangeText={setDescripcion}
                 />
+                <TouchableOpacity 
+                    style={styles.selectorStyle}
+                    onPress={() => {
+                        setEstado(estado === 'Disponible' ? 'No disponible' : 'Disponible');
+                    }}
+                >
+                    <Text style={styles.selectorText}>{estado ? `Estado: ${estado}` : 'Estado'}</Text>
+                    <View style={styles.triangle} />
+                </TouchableOpacity>
 
-                <Text style={styles.label}>Precio (*)</Text>
-                <TextInput 
-                    style={styles.input} 
-                    placeholder="Ej: 45.50" 
+                {/* Modificado a Selector de 3 de forma interactiva */}
+                <TouchableOpacity 
+                    style={styles.selectorStyle} 
+                    onPress={cambiarCategoria}
+                >
+                    <Text style={styles.selectorText}>{`Categoria: ${categoria}`}</Text>
+                    <View style={styles.triangle} />
+                </TouchableOpacity>
+
+                <TextInput
+                    style={styles.inputStyle}
+                    placeholder="Precio"
+                    placeholderTextColor="#555"
                     value={precio}
                     onChangeText={setPrecio}
-                    keyboardType="numeric" 
+                    keyboardType="numeric"
                 />
 
-                <Text style={styles.label}>Categoría (*)</Text>
-                <TextInput 
-                    style={styles.input} 
-                    placeholder="Ej: Electrónica" 
-                    value={categoria}
-                    onChangeText={setCategoria}
-                />
-
-                <Text style={styles.label}>Estado: {estado}</Text>
-                <View style={styles.estadoContainer}>
-                    <TouchableOpacity 
-                        style={[styles.botonEstado, estado === 'Disponible' && styles.botonEstadoActivo]} 
-                        onPress={() => setEstado('Disponible')}
-                    >
-                        <Text style={styles.textoBotonEstado}>Disponible</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[styles.botonEstado, estado === 'No disponible' && styles.botonEstadoActivo]} 
-                        onPress={() => setEstado('No disponible')}
-                    >
-                        <Text style={styles.textoBotonEstado}>No disponible</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <Text style={styles.label}>Fotografía del Item</Text>
-                <View style={styles.imageContainer}>
+                <TouchableOpacity style={styles.imageContainer} onPress={tomarOFotoGaleria}>
                     {selectImage ? (
-                        <Image source={{ uri: selectImage }} style={styles.image} />
+                        <Image source={{ uri: selectImage }} style={styles.imageFull} />
                     ) : (
-                        <Text style={styles.placeholderText}>Añadir foto</Text>
+                        <View style={styles.placeholderIconContainer}>
+                            <View style={styles.iconSun} />
+                            <View style={styles.iconMountainLeft} />
+                            <View style={styles.iconMountainRight} />
+                        </View>
                     )}
-                </View>
-
-                <View style={styles.botonSpace}>
-                    <Button title="Seleccionar de Galería" onPress={pickImage} />
-                </View>
-                <View style={styles.botonSpace}>
-                    <Button title="Tomar Foto" onPress={tomarFoto} />
-                </View>
-                
-                <TouchableOpacity style={styles.botonEnviar} onPress={manejarEnviar}>
-                    <Text style={styles.textoBoton}>Guardar Producto</Text>
                 </TouchableOpacity>
-            </ScrollView>
+                <Text style={styles.imageLabel}>Fotografía Item</Text>
 
-            <Text style={styles.listTitle}>Inventario Registrado</Text>
-            <FlatList
-                data={listaProductos}
-                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-                renderItem={({ item }) => (
-                    <View style={styles.itemCard}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.itemCardTitle}>{item.nombre}</Text>
-                            <Text style={styles.itemCardSub}>${item.precio} - {item.estado}</Text>
-                        </View>
-                        <View style={styles.actions}>
-                            <TouchableOpacity 
-                                style={styles.botonDetalle} 
-                                onPress={() => navigation.navigate('Detalle', { producto: item })}
-                            >
-                                <Text style={styles.textoBoton}>Detalle</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={styles.botonEliminar} 
-                                onPress={() => item.id && eliminarProducto(item.id)}
-                            >
-                                <Text style={styles.textoBoton}>X</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
-                style={styles.list}
-            />
+                <TouchableOpacity style={styles.botonGuardar} onPress={manejarGuardar}>
+                    <Text style={styles.textoBoton}>Guardar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={styles.botonDetalleItems}
+                    onPress={() => {
+                        if(listaProductos.length > 0) {
+                            navigation.navigate('Detalle', { producto: listaProductos[listaProductos.length - 1] });
+                        } else {
+                            alert('No hay productos guardados en el inventario para ver el detalle');
+                        }
+                    }}
+                >
+                    <Text style={styles.textoBoton}>Detalle Items</Text>
+                </TouchableOpacity>
+
+            </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5', padding: 15 },
-    formContainer: { maxHeight: 380, backgroundColor: '#fff', padding: 10, borderRadius: 8 },
-    title: { fontSize: 20, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 10 },
-    label: { fontSize: 14, fontWeight: 'bold', color: '#555', marginTop: 8, marginBottom: 4 },
-    input: { borderBottomWidth: 1, borderColor: '#ccc', padding: 5, marginBottom: 5, fontSize: 15 },
-    estadoContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 5 },
-    botonEstado: { flex: 1, padding: 8, borderWidth: 1, borderColor: '#ccc', marginHorizontal: 2, alignItems: 'center', borderRadius: 4 },
-    botonEstadoActivo: { backgroundColor: '#cdf7cd', borderColor: '#4CAF50' },
-    textoBotonEstado: { fontSize: 13, fontWeight: '500' },
-    imageContainer: { width: 100, height: 100, borderColor: '#ccc', borderWidth: 1, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginVertical: 10, borderRadius: 4, backgroundColor: '#fafafa' },
-    image: { width: '100%', height: '100%', borderRadius: 4 },
-    placeholderText: { color: '#aaa', fontSize: 13 },
-    botonSpace: { marginVertical: 4 },
-    botonEnviar: { backgroundColor: '#4CAF50', padding: 12, borderRadius: 4, alignItems: 'center', marginTop: 15 },
-    textoBoton: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-    listTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 15, marginBottom: 5, color: '#333' },
-    list: { flex: 1 },
-    itemCard: { flexDirection: 'row', backgroundColor: '#fff', padding: 12, marginVertical: 4, borderRadius: 6, alignItems: 'center', elevation: 1 },
-    itemCardTitle: { fontSize: 15, fontWeight: 'bold' },
-    itemCardSub: { fontSize: 13, color: '#666' },
-    actions: { flexDirection: 'row', alignItems: 'center' },
-    botonDetalle: { backgroundColor: '#FF9800', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 4, marginRight: 5 },
-    botonEliminar: { backgroundColor: '#F44336', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 4 }
+    container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 30, paddingTop: 20 },
+    formContainer: { alignItems: 'center', paddingBottom: 30 },
+    inputStyle: {
+        width: '100%',
+        height: 42,
+        borderWidth: 1.5,
+        borderColor: '#333',
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        color: '#000',
+        textAlign: 'center',
+        marginBottom: 15,
+        backgroundColor: '#fff'
+    },
+    selectorStyle: {
+        width: '100%',
+        height: 42,
+        borderWidth: 1.5,
+        borderColor: '#333',
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15,
+        backgroundColor: '#fff',
+        position: 'relative'
+    },
+    selectorText: { fontSize: 16, color: '#000', textAlign: 'center' },
+    triangle: {
+        position: 'absolute',
+        right: 15,
+        width: 0,
+        height: 0,
+        borderLeftWidth: 8,
+        borderLeftColor: 'transparent',
+        borderRightWidth: 8,
+        borderRightColor: 'transparent',
+        borderTopWidth: 12,
+        borderTopColor: '#b0c4de',
+    },
+    imageContainer: {
+        width: 110,
+        height: 110,
+        borderWidth: 2,
+        borderColor: '#ff7f00',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 10,
+        position: 'relative',
+        backgroundColor: '#fff'
+    },
+    imageFull: { width: '100%', height: '100%', resizeMode: 'cover' },
+    imageLabel: { fontSize: 11, color: '#333', marginTop: 5, marginBottom: 20 },
+    placeholderIconContainer: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+    iconSun: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#ff7f00', position: 'absolute', top: 25, left: 35 },
+    iconMountainLeft: { width: 0, height: 0, borderLeftWidth: 30, borderLeftColor: 'transparent', borderRightWidth: 30, borderRightColor: 'transparent', borderBottomWidth: 40, borderBottomColor: '#ff7f00', position: 'absolute', bottom: 10, left: 10 },
+    iconMountainRight: { width: 0, height: 0, borderLeftWidth: 35, borderLeftColor: 'transparent', borderRightWidth: 35, borderRightColor: 'transparent', borderBottomWidth: 50, borderBottomColor: '#ff7f00', position: 'absolute', bottom: 10, right: 5, opacity: 0.8 },
+    botonGuardar: {
+        width: '55%',
+        height: 42,
+        backgroundColor: '#005ed3',
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 15,
+        elevation: 2
+    },
+    botonDetalleItems: {
+        width: '55%',
+        height: 42,
+        backgroundColor: '#2ca84c',
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2
+    },
+    textoBoton: { color: '#fff', fontWeight: '500', fontSize: 16 }
 });

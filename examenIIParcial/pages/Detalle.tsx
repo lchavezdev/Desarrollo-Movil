@@ -11,13 +11,13 @@ export default function Detalle({ route, navigation }: any) {
     const ejecutarEliminar = () => {
         if (producto.id) {
             eliminarProducto(producto.id);
-            navigation.goBack(); // Regresa al inventario tras eliminar
+            navigation.goBack();
         }
     };
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>items</Text>
+            <Text style={styles.sectionTitle}>Items</Text>
             <Text style={styles.infoText}>
                 {producto.nombre} | ${producto.precio} | {producto.descripcion || 'Sin descripción'}
             </Text>
